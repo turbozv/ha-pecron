@@ -16,7 +16,7 @@ def _sensor_description(key: str):
     return next(description for description in PECRON_SENSORS if description.key == key)
 
 
-def _sensor_with_battery_pack(battery_pack: dict) -> tuple[MagicMock, MagicMock]:
+def _sensor_with_battery_pack(battery_pack: dict | None) -> tuple[MagicMock, MagicMock]:
     """Create a battery sensor whose coordinator reports a battery packet."""
     device = MagicMock(
         device_key="test_device", device_name="Test Device", product_name="Test Product"
@@ -56,6 +56,27 @@ def test_battery_current_sensor_metadata_and_value() -> None:
     coordinator, device = _sensor_with_battery_pack({"host_packet_current": "-12.5"})
     sensor = PecronSensor(coordinator, "test_device", device, description)
     assert sensor.native_value == -12.5
+
+
+@pytest.mark.parametrize(
+    ("battery_pack", "expected"),
+    [
+        (None, None),
+        ({}, None),
+        ({"host_packet_voltage": None}, None),
+        ({"host_packet_voltage": "not-a-number"}, None),
+        ({"host_packet_voltage": "24"}, 24),
+    ],
+)
+def test_battery_sensor_handles_missing_and_invalid_values(
+    battery_pack: dict | None, expected: int | None
+) -> None:
+    """Missing or invalid battery pack telemetry produces an unavailable value."""
+    description = _sensor_description("battery_voltage")
+    coordinator, device = _sensor_with_battery_pack(battery_pack)
+    sensor = PecronSensor(coordinator, "test_device", device, description)
+
+    assert sensor.native_value == expected
 
 
 @pytest.mark.asyncio

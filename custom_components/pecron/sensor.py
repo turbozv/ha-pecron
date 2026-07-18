@@ -34,6 +34,7 @@ _LOGGER = logging.getLogger(__name__)
 class PecronSensorDescription(SensorEntityDescription):
     """Describe a Pecron sensor."""
 
+    icon: str | None = None
     always_create: bool = False  # Bypass TSL filtering
     smart_availability: bool = False  # Use smart logic for availability
     struct_property: str | None = None  # Parent property name if value is inside a STRUCT dict
@@ -68,6 +69,7 @@ PECRON_SENSORS = [
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        icon="mdi:battery-heart-variant",
         struct_property="battery_pack",
         struct_field="host_packet_voltage",
         tsl_property="host_packet_data_jdb",
@@ -78,6 +80,7 @@ PECRON_SENSORS = [
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        icon="mdi:current-dc",
         struct_property="battery_pack",
         struct_field="host_packet_current",
         tsl_property="host_packet_data_jdb",
