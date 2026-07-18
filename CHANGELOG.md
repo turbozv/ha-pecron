@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Battery Voltage and Current sensors**: Exposes battery voltage in volts and battery current in amperes when supported by the device TSL.
 
+### Fixed
+- Read battery voltage and current from the nested battery packet exposed by the Pecron API and discover both sensors through its `host_packet_data_jdb` TSL property.
+
 ## [0.5.0] - 2026-04-10
 
 ### Changed

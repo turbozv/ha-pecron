@@ -38,6 +38,7 @@ class PecronSensorDescription(SensorEntityDescription):
     smart_availability: bool = False  # Use smart logic for availability
     struct_property: str | None = None  # Parent property name if value is inside a STRUCT dict
     struct_field: str | None = None  # Key within the struct dict to extract
+    tsl_property: str | None = None  # TSL property that supplies this sensor's value
 
     def __post_init__(self) -> None:
         """Post init."""
@@ -67,6 +68,9 @@ PECRON_SENSORS = [
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        struct_property="battery_pack",
+        struct_field="host_packet_voltage",
+        tsl_property="host_packet_data_jdb",
     ),
     PecronSensorDescription(
         key="battery_current",
@@ -74,6 +78,9 @@ PECRON_SENSORS = [
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        struct_property="battery_pack",
+        struct_field="host_packet_current",
+        tsl_property="host_packet_data_jdb",
     ),
     PecronSensorDescription(
         key="total_input_power",
@@ -157,16 +164,16 @@ async def async_setup_entry(
 
             for sensor_desc in PECRON_SENSORS:
                 # Always create sensors marked with always_create flag
-                # Otherwise check both property name and _hm variant (API maps xxx_hm -> xxx)
-                # For struct sensors, also check the TSL code with _data_ infix
-                # (e.g., ac_input -> ac_data_input_hm)
-                tsl_key = sensor_desc.key
-                tsl_key_hm = f"{sensor_desc.key}_hm"
-                tsl_key_data_hm = f"{tsl_key.replace('_input', '_data_input')}_hm" if "_input" in tsl_key else None
-                if (sensor_desc.always_create or
-                    tsl_key in tsl_property_codes or
-                    tsl_key_hm in tsl_property_codes or
-                    (tsl_key_data_hm and tsl_key_data_hm in tsl_property_codes)):
+                # Otherwise check the API property name and common TSL variants.
+                tsl_keys = {
+                    sensor_desc.key,
+                    f"{sensor_desc.key}_hm",
+                    sensor_desc.tsl_property or sensor_desc.key,
+                }
+                if "_input" in sensor_desc.key:
+                    tsl_keys.add(f"{sensor_desc.key.replace('_input', '_data_input')}_hm")
+
+                if sensor_desc.always_create or tsl_property_codes.intersection(tsl_keys):
                     sensors.append(
                         PecronSensor(
                             coordinator,
@@ -177,11 +184,10 @@ async def async_setup_entry(
                     )
                 else:
                     _LOGGER.debug(
-                        "Skipping sensor '%s' for %s - not in TSL (checked '%s' and '%s_hm')",
+                        "Skipping sensor '%s' for %s - not in TSL (checked %s)",
                         sensor_desc.key,
                         device_data["device"].device_name,
-                        sensor_desc.key,
-                        sensor_desc.key,
+                        sorted(tsl_keys),
                     )
         else:
             # Fallback: create all sensors if TSL is not available
