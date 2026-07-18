@@ -5,7 +5,11 @@ from unittest.mock import MagicMock
 
 import pytest
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
-from homeassistant.const import UnitOfElectricCurrent, UnitOfElectricPotential
+from homeassistant.const import (
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfTemperature,
+)
 
 from custom_components.pecron.const import DOMAIN
 from custom_components.pecron.sensor import PECRON_SENSORS, PecronSensor, async_setup_entry
@@ -56,6 +60,22 @@ def test_battery_current_sensor_metadata_and_value() -> None:
     coordinator, device = _sensor_with_battery_pack({"host_packet_current": "-12.5"})
     sensor = PecronSensor(coordinator, "test_device", device, description)
     assert sensor.native_value == -12.5
+
+
+def test_battery_temperature_sensor_metadata_and_value() -> None:
+    """Battery temperature is exposed as a temperature measurement in Celsius."""
+    description = _sensor_description("battery_temperature")
+
+    assert description.device_class is SensorDeviceClass.TEMPERATURE
+    assert description.state_class is SensorStateClass.MEASUREMENT
+    assert description.native_unit_of_measurement == UnitOfTemperature.CELSIUS
+    assert description.tsl_property == "host_packet_data_jdb"
+    assert description.struct_property == "battery_pack"
+    assert description.struct_field == "host_packet_temp"
+
+    coordinator, device = _sensor_with_battery_pack({"host_packet_temp": "31.5"})
+    sensor = PecronSensor(coordinator, "test_device", device, description)
+    assert sensor.native_value == 31.5
 
 
 @pytest.mark.parametrize(
@@ -111,3 +131,4 @@ async def test_battery_sensors_created_from_battery_packet_tsl() -> None:
     sensor_keys = {sensor.entity_description.key for sensor in sensors}
     assert "battery_voltage" in sensor_keys
     assert "battery_current" in sensor_keys
+    assert "battery_temperature" in sensor_keys

@@ -16,6 +16,7 @@ from homeassistant.const import (
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfPower,
+    UnitOfTemperature,
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant, callback
@@ -83,6 +84,17 @@ PECRON_SENSORS = [
         icon="mdi:current-dc",
         struct_property="battery_pack",
         struct_field="host_packet_current",
+        tsl_property="host_packet_data_jdb",
+    ),
+    PecronSensorDescription(
+        key="battery_temperature",
+        name="Battery Temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        icon="mdi:thermometer",
+        struct_property="battery_pack",
+        struct_field="host_packet_temp",
         tsl_property="host_packet_data_jdb",
     ),
     PecronSensorDescription(
